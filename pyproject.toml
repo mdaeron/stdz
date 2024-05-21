@@ -1,0 +1,25 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "stdz"
+authors = [{name = "Mathieu Daëron", email = "mathieu@daeron.fr"}]
+readme = "readme.md"
+dynamic = ["version", "description"]
+license = {text = "MIT"}
+classifiers = [
+	"Programming Language :: Python :: 3",
+	"License :: OSI Approved :: BSD License",
+	"Operating System :: OS Independent",
+]
+requires-python = ">=3.11"
+dependencies = [
+    "numpy >=1.24.2",
+    "pandas >=2.0.0",
+    "scipy >=1.10.1",
+    "lmfit >=1.2.2",
+]
+
+[project.urls]
+Home = "https://github.com/mdaeron/stdz"
