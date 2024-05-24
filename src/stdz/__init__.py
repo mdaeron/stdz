@@ -20,14 +20,14 @@ def sanitize(x):
 	return x.replace('-', '').replace('.', '')
 
 
-class DataFrame:
+class Dataset:
 
 	def __init__(self, data = [], index_field = 'UID'):
 		"""
 		Hold data to be standardized
 		"""
 		if isinstance(data, pandas.DataFrame):
-			self.data = data
+			self.data = data.copy()
 		elif isinstance(data, list):
 			self.data = pandas.DataFrame(data)
 		else:
@@ -179,27 +179,43 @@ class DataFrame:
 		})
 
 
-		self.samples = pandas.DataFrame()
-		self.samples['N'] = self.data.value_counts(subset='Sample')
-		self.samples[k_in] = (
+		samples = pandas.DataFrame()
+		samples['N'] = self.data.value_counts(subset='Sample')
+		samples[k_in] = (
 			self.data
 			.groupby('Sample')
 			.agg({k_in: 'mean'})
 		)
-		self.samples[k_out] = self.samples.index.map({
+		samples[k_out] = samples.index.map({
 			s: anchors[s] if s in anchors else fitresult.params[f"x_{sanitize(s)}"].value
-			for s in self.samples.index
+			for s in samples.index
 		})
-		self.samples['SE_'+k_out] = self.samples.index.map({
+		samples['SE_'+k_out] = samples.index.map({
 			s: None if s in anchors else fitresult.params[f"x_{sanitize(s)}"].stderr
-			for s in self.samples.index
+			for s in samples.index
 		})
-		self.samples['95CL_'+k_out] = self.samples['SE_'+k_out] * self.t95
-		self.samples['SD_'+k_out] = (
+		samples['95CL_'+k_out] = samples['SE_'+k_out] * self.t95
+		samples['SD_'+k_out] = (
 			self.data
 			.groupby('Sample')
 			.agg({k_out+'_corrected': 'std'})
 		)
+
+		if hasattr(self, 'samples'):
+			columns = self.samples.columns.tolist()
+			for c in samples.columns:
+				if c not in columns:
+					columns.append(c)
+			self.samples = self.samples.combine_first(samples)[columns]
+		else:
+			self.samples = samples.copy()
+		
+		df_anchors = pandas.DataFrame({k_out: [anchors[s] for s in anchors]}, index = anchors.keys())
+		if hasattr(self, 'anchors'):
+			self.anchors = self.anchors.combine_first(df_anchors)
+		else:
+			self.anchors = df_anchors.copy()
+			self.anchors.index.name = 'Sample'
 
 
 if __name__ == '__main__':
@@ -207,21 +223,34 @@ if __name__ == '__main__':
 	from random import random
 
 	N = 100
-	df = DataFrame([
+	_df = pandas.DataFrame([
 		{
 			'UID': f'X{_+1:03.0f}',
 			'Session': f'2024-{_//20+1:02.0f}',
-			'Sample': ['IAEA603', 'IAEA612', 'FOO', 'BAR'][_ % 4],
-			'd636': [2.00, -35.00, 35., -20.][_ % 4] + 0.1 * (2*random()-1),
+			'Sample': ['IAEA603', 'IAEA612', 'NBS18', 'FOO', 'BAR'][_ % 5],
+			'd636': [2.00, -35.00, -6., 35., -20.][_ % 5] + 0.1 * (2*random()-1),
+			'd628': [-2.00, -11.00, -23.0, 0., 20.][_ % 5] + 0.1 * (2*random()-1),
 		}
 		for _ in range(N)
 	])
+	
+	df = Dataset(_df)
 	df.to_csv('foo.csv', float_format = '%.6f')
 
-	df.standardize('d636', 'd13C_VPDB', dict(IAEA603 = 2.46, IAEA612 = -36.722))
-	
+	df.standardize('d636', 'd13C_VPDB', dict(IAEA603 = 2.46, IAEA612 = -36.722))	
 	print(df.data)
 	print()
 	print(df.sessions)
 	print()
 	print(df.samples)
+	print()
+	print(df.anchors)
+
+	df.standardize('d628', 'd18O_VPDB', dict(IAEA603 = -2.37, NBS18 = -23.01))	
+	print(df.data)
+	print()
+	print(df.sessions)
+	print()
+	print(df.samples)
+	print()
+	print(df.anchors)
