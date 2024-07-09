@@ -796,13 +796,30 @@ if __name__ == '__main__':
 
 	df.standardize('d636', 'd13C_VPDB', dict(IAEA603 = 2.46, IAEA612 = -36.722))	
 	df.standardize('d628', 'd18O_VPDB', dict(IAEA603 = -2.37, NBS18 = -23.01))	
+
 	df.standardize_D17O(
 		'd628', 'd627', 'd18O_VSMOW', 'd17O_VSMOW',
-		dict(IAEA603 = dict(d18O_VSMOW = -2, D17O_VSMOW = 0.), NBS18 = dict(d18O_VSMOW = -23., D17O_VSMOW = 0.)),
+		dict(
+			IAEA603 = dict(d18O_VSMOW = -2, D17O_VSMOW = 0.),
+			NBS18 = dict(d18O_VSMOW = -23., D17O_VSMOW = 0.),
+		),
+		gamma_17 = -0.1273,
 	)	
 
 	df.plot_D17O_residuals()
+
+# 	df.standardize_D17O(
+# 		'd628', 'd627', 'd18O_IAEA603', 'd17O_IAEA603',
+# 		dict(
+# 			IAEA603 = dict(d18O_IAEA603 = 0., D17O_IAEA603 = 0.000),
+# 			NBS18 = dict(d18O_IAEA603 = -21., D17O_IAEA603 = 0.027),
+# 		),
+# 	)	
+# 
+# 	df.plot_D17O_residuals(d18O_key_out = 'd18O_IAEA603', D17O_key_out = 'D17O_IAEA603')
 	
+	pyplot.show()
+
 	df.to_csv('foo.csv', float_format = '%.6f')
 
 	print(df.data)
