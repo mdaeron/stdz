@@ -288,6 +288,7 @@ class Dataset:
 		constraints = {},
 		residuals_17 = 'd17', # 'D17' | 'd17'
 		lambda_17 = 0.528,
+		gamma_17 = 0., # permil
 		robust_cov_estimator = True,
 		relative_sigma_precision = 1e-5,
 		max_iter = 10,
@@ -306,7 +307,7 @@ class Dataset:
 		for s in anchors:
 			if d17O_key_out not in anchors[s]:
 				anchors[s][d17O_key_out] = 1e3 * (
-					numpy.exp(anchors[s][D17O_key_out] / 1e3)
+					numpy.exp((anchors[s][D17O_key_out] + gamma_17) / 1e3)
 					* (1 + anchors[s][d18O_key_out] / 1e3)**lambda_17
 					- 1
 				)
@@ -314,7 +315,7 @@ class Dataset:
 				anchors[s][D17O_key_out] = 1e3 * (
 					numpy.log(1+anchors[s][d17O_key_out] / 1e3)
 					- lambda_17 * numpy.log(1+anchors[s][d18O_key_out] / 1e3)
-				)
+				) - gamma_17
 		
 		# TODO: check consistency between d17O and D17O in anchors
 
@@ -341,7 +342,7 @@ class Dataset:
 				1e3 * (
 					numpy.log(1+self.data[d17O_key_in]/1e3)
 					- lambda_17 * numpy.log(1+self.data[d18O_key_in]/1e3)
-				),
+				) - gamma_17,
 			)
 
 		def truevalues(p):
@@ -360,7 +361,11 @@ class Dataset:
 				for s in self.data.Sample.unique()
 			})
 			
-			d17true = 1e3 * (numpy.exp(D17true/1e3) * (1+d18true/1e3)**lambda_17 - 1)
+			d17true = 1e3 * (
+				numpy.exp((D17true + gamma_17)/1e3)
+				* (1+d18true/1e3)**lambda_17
+				- 1
+			)
 
 			return (d18true, d17true, D17true)
 
@@ -394,8 +399,9 @@ class Dataset:
 			)
 
 			D17corrected = 1e3 * (
-				numpy.log(1+d17corrected/1e3) - lambda_17 * numpy.log(1+d18corrected/1e3)
-			)
+				numpy.log(1+d17corrected/1e3)
+				- lambda_17 * numpy.log(1+d18corrected/1e3)
+			) - gamma_17
 
 			return (d18corrected, d17corrected, D17corrected)
 
@@ -439,8 +445,9 @@ class Dataset:
 			)
 
 			D17predicted = 1e3 * (
-				numpy.log(1+d17predicted/1e3) - lambda_17 * numpy.log(1+d18predicted/1e3)
-			)
+				numpy.log(1+d17predicted/1e3)
+				- lambda_17 * numpy.log(1+d18predicted/1e3)
+			) - gamma_17
 
 			return (d18predicted, d17predicted, D17predicted)
 
@@ -643,7 +650,7 @@ class Dataset:
 		)
 
 		samples[d17O_key_out] = 1e3 * (
-				numpy.exp(samples[D17O_key_out] / 1e3)
+				numpy.exp((samples[D17O_key_out] + gamma_17) / 1e3)
 				* (1 + samples[d18O_key_out] / 1e3)**lambda_17
 				- 1
 			)
